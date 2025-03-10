@@ -18,3 +18,18 @@ services:
     restart: always
     volumes:
       - D:/dockerdata/spark-tts:/data:rw
+
+  spark_tts_api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: spark_tts_api
+    runtime: nvidia
+    network_mode: "host"
+    stdin_open: true
+    tty: true
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=0
+    restart: always
+    volumes:
+      - D:/dockerdata/spark-tts:/data:rw

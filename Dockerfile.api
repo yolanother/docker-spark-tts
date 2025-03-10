@@ -1,30 +1,35 @@
 FROM pytorch/pytorch:2.6.0-cuda12.4-cudnn9-devel
-RUN pip install uv
 
 RUN apt update && \
-    apt install -y espeak-ng git git-lfs && \
+    apt install -y espeak-ng git git-lfs ffmpeg && \
     rm -rf /var/lib/apt/lists/*
     
 RUN pip3 install --upgrade --no-cache-dir torch==2.5.1 torchvision==0.20.1+cu121 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cu121
 
+# Install dependencies for API
+RUN pip install fastapi uvicorn pydub soundfile transformers
+
+# Clone Spark-TTS repository
 RUN git clone https://github.com/SparkAudio/Spark-TTS.git /Spark-TTS
 WORKDIR /Spark-TTS
 RUN pip install -r requirements.txt
 RUN mkdir -p pretrained_models
-# Make sure you have git-lfs installed (https://git-lfs.com)
+
+# Make sure you have git-lfs installed
 RUN git lfs install
 RUN git clone https://huggingface.co/SparkAudio/Spark-TTS-0.5B pretrained_models/Spark-TTS-0.5B
 
-# Install Gradio
-RUN pip install gradio
+# Copy API files
+COPY api /api
 
-# Make port 7860 available to the world outside this container
-EXPOSE 7310
+# Make port available
+EXPOSE 7311
 
 # Set PYTHONPATH
-ENV PYTHONPATH=/Spark-TTS
+ENV PYTHONPATH=/Spark-TTS:/
 
-# Run app.py when the container launches
-CMD ["sh", "-c", "python -u webui.py --device 0 --server_port ${PORT}"]
+# Create data directories
+RUN mkdir -p /data/generated_audio /data/samples
 
-
+# Run the API server
+CMD ["sh", "-c", "cd /api && python -u api.py"]
